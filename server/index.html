@@ -1,0 +1,141 @@
+<html>
+  <head></head>
+  <style>
+    body {
+      background: #000;
+      color: lime;
+      font-size: 16px;
+      padding: 0;
+      font-family: consolas, sans-serif;
+    }
+
+    h1 {
+      margin: 0;
+      padding: 0;
+    }
+
+    #console {
+      border: 2px solid #ccc;
+      width: 80%;
+      height: 600px;
+      margin: auto 10%;
+    }
+
+    header {
+      background: cadetblue;
+      height: 40px;
+    }
+
+    #output {
+      height: 480px;
+      overflow-y: scroll;
+    }
+
+    ul {
+      padding: 0;
+      margin: 0;
+    }
+
+    #input {
+      width: 100%;
+      height: 40px;
+    }
+
+    #commands {
+      height: 40px;
+      width: 100%;
+    }
+
+    #prompt {
+      width: 20px;
+      display: inline-block;
+      height: 100%;
+    }
+
+    input {
+      padding: 10px;
+      width: 80%;
+      display: inline-block;
+      background: #000;
+      color: lime;
+      border: 0;
+      font-family: "Courier New", sans-serif;
+    }
+
+    button:focus, input:focus {
+      outline: none;
+    }
+
+    button {
+      width: 10%;
+      height: 100%;
+      display: inline-block;
+      color: lime;
+      background: #000;
+      border: 0;
+      float: right;
+    }
+  </style>
+  <body>
+    <div id="console">
+      <header>
+        <h1>run.bat</h1>
+      </header>
+      <div id="output">
+        <ul></ul>
+      </div>
+      <div id="commands">
+        <button id="connect">connect</button>
+        <button id="disconnect">disconnect</button>
+      </div>
+      <form id="input">
+        <div id="prompt">&gt;</div> <input id="cmd" type="text"/> <button id="exe">send</button>
+      </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+      $(function () {
+        var socket = io();
+
+        $('form').submit(function(){
+
+          var cmd = $('#cmd').val();
+
+          // client side commands match the switch
+          switch (cmd) {
+            case 'cls':
+              $('#output ul').empty();
+              break;
+
+            default:
+              // else we issue command to server
+              socket.emit('command', cmd);
+              break;
+          }
+
+          $('#cmd').val('');
+          return false;
+        });
+
+        // command buttons
+        $('#connect').on('click', function() {
+          socket.emit('join');
+        });
+
+        $('#disconnect').on('click', function() {
+          socket.emit('leave');
+        });
+
+        // responses to events emitted from the server
+        socket.on('command', function(cmd){
+          $('#output ul').append($('<li>').text(cmd));
+        });
+
+        //socket.on('cls', function() {
+
+        // });
+      });
+    </script>
+  </body>
+</html>
