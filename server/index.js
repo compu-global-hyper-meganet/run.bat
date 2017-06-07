@@ -9,39 +9,54 @@ app.get('/', function(req, res){
 // game state
 var numberOfUsers = 0;
 var gameActive = false;
+var players = [];
+
+
+function addPlayer(id) {
+  var player = {
+    id: id,
+    defence: 10,
+    active: false
+  };
+  players.push(player);
+}
 
 // event emitter
 io.on('connection', function(socket){
 
-  console.log('a user connected ' + socket.id);
-  var hasJoined = false;
+  var player = null;
+  var opponent = null;
 
   socket.on('join', function() {
-    if(hasJoined) {
+
+    addPlayer(socket.id);
+    player = players.find(x => x.id === socket.id);
+
+    if(player.active) {
       return;
     }
-    //console.log(socket.id +' player request to join game');
     numberOfUsers++;
-    hasJoined = true;
+    player.active = true;
 
-    io.to(socket.id).emit('command', 'Attempting connection...');
+    io.to(player.id).emit('message', 'Attempting connection...');
+    io.to(player.id).emit('message', 'Initialising defence...');
+    io.to(player.id).emit('action', { type: 'setDefence', value: player.defence });
+    io.to(player.id).emit('message', 'Defence grid active');
 
     if(numberOfUsers === 2) {
-      var msg = "Two players have joined the game, game starting..."
-      io.emit('command', msg);
       gameActive = true;
+      io.emit('message', 'Two players have joined the game, game starting...');
     }
   });
 
   socket.on('leave', function() {
     //console.log(socket.id +' player request to leave game');
     numberOfUsers--;
-    hasJoined = false;
-    io.to(socket.id).emit('command', 'Disconnected from target, you lose.');
+    player.active = false;
+    io.to(player.id).emit('message', 'Disconnected from target, you lose.');
 
     if(numberOfUsers < 2) {
-      var msg = "Target has disconnect, you win!"
-      socket.broadcast.emit('command', msg);
+      io.to(opponent.id).emit('message', 'Target has disconnected, you win!');
       gameActive = false;
     }
   });
@@ -51,15 +66,33 @@ io.on('connection', function(socket){
     if(!gameActive) {
       return;
     }
-    //console.log('command: ' + cmd);
 
-    socket.broadcast.emit('command', cmd);
+    opponent = players.find(x => x.id !== socket.id);
 
     switch (cmd) {
       case 'cls':
         socket.broadcast.emit('cls');
         break;
-
+      case 'firewall':
+        if(player.defence < 10) {
+          player.defence ++;
+          io.to(player.id).emit('message', 'Defences increased to ' + player.defence);
+          io.to(player.id).emit('action', { type: 'setDefence', value: player.defence });
+        } else {
+          io.to(player.id).emit('message', 'Defences at maximum, push the attack!');
+        }
+        break;
+      case 'virus':
+        opponent.defence --;
+        io.to(opponent.id).emit('action', { type: 'setDefence', value: opponent.defence });
+        if(opponent.defence === 0) {
+          io.to(player.id).emit('message', 'Opponents defences breached, you win!');
+          io.to(opponent.id).emit('message', 'Your defences are breached, you lose.');
+        } else {
+          io.to(player.id).emit('message', 'Virus transmitted');
+          io.to(opponent.id).emit('message', 'Under attack! Defence grid at ' + opponent.defence);
+        }
+        break;
       default:
         break;
     }

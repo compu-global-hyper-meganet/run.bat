@@ -27,7 +27,7 @@
     }
 
     #output {
-      height: 480px;
+      height: 360px;
       overflow-y: scroll;
     }
 
@@ -52,6 +52,27 @@
       height: 100%;
     }
 
+    #defence {
+      height: 80px;
+      width: 100%;
+      display: inline-block;
+      color: lime;
+    }
+
+    #defence p {
+      display: block;
+      width: 100%;
+      height: 40px;
+      padding: 0;
+      margin: 0;
+    }
+
+    #defenceMeter {
+      background-color: lime;
+      height: 40px;
+      display: inline-block;
+    }
+
     input {
       padding: 10px;
       width: 80%;
@@ -67,26 +88,34 @@
     }
 
     button {
-      width: 10%;
+      min-width: 80px;
       height: 100%;
       display: inline-block;
       color: lime;
       background: #000;
-      border: 0;
+      border: 1px solid lime;
+      margin: 0 5px 0 5px;
+      padding: 5px;
       float: right;
     }
+
+
+
   </style>
   <body>
     <div id="console">
       <header>
         <h1>run.bat</h1>
       </header>
+      <div id="defence"><p>System defence:</p><div id="defenceMeter"></div></div>
       <div id="output">
         <ul></ul>
       </div>
       <div id="commands">
         <button id="connect">connect</button>
         <button id="disconnect">disconnect</button>
+        <button id="virus">send virus</button>
+        <button id="firewall">configure firewall</button>
       </div>
       <form id="input">
         <div id="prompt">&gt;</div> <input id="cmd" type="text"/> <button id="exe">send</button>
@@ -127,9 +156,29 @@
           socket.emit('leave');
         });
 
+        $('#virus').on('click', function() {
+          socket.emit('command', 'virus');
+        });
+
+        $('#firewall').on('click', function() {
+          socket.emit('command', 'firewall');
+        });
+
         // responses to events emitted from the server
-        socket.on('command', function(cmd){
+        socket.on('message', function(cmd){
           $('#output ul').append($('<li>').text(cmd));
+        });
+
+        socket.on('action', function(action){
+
+          switch (action.type) {
+            case 'setDefence':
+              $('#defenceMeter').width(action.value * 10 + '%');
+              break;
+
+            default:
+              break;
+          }
         });
 
         //socket.on('cls', function() {
